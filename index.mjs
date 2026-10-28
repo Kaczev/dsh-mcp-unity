@@ -2,8 +2,9 @@ import z from '@deepseek-ai/schemastery';
 import * as mcp from '@deepseek-ai/dsh-mcp-client';
 import { connectionConfig } from './lib/connection.mjs';
 import { installLazyTools } from './lib/lazy-tools.mjs';
+import { configurationTool } from './lib/configure-project.mjs';
 export const name = 'dsh-unity-mcp';
-export const inject = ['tools', 'agents'];
+export const inject = ['tools', 'agents', 'configEditor'];
 export const Config = z.object({
   projectPath: z.string().default('').description('Unity / Tuanjie 项目绝对路径 / Absolute project directory'),
   serverPath: z.string().default('').description('CoderGamester Server~/build/index.js 绝对路径；留空从项目发现 / Built server path; blank discovers in project'),
@@ -15,7 +16,7 @@ export const Config = z.object({
 });
 export async function apply(ctx, config) {
   // Install the loader even before configuration, so discovery explains setup.
-  installLazyTools(ctx, config.lazyTools);
+  installLazyTools(ctx, config.lazyTools, [configurationTool(ctx)]);
   if (!config.projectPath && !config.serverPath) {
     ctx.logger.info('Unity MCP: configure projectPath or serverPath to connect CoderGamester/mcp-unity.');
     return;

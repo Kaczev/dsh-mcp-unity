@@ -34,9 +34,17 @@
 
 配置为空时插件仅提供加载入口，并提示如何连接。它不会启动 Unity / Tuanjie 编辑器。连接配置完成后，DSH 启动上游 Node stdio 桥接进程，由桥接进程连接引擎端服务。
 
+## 通过对话配置工程（0.0.2 起）
+
+可以直接告诉 Agent：“把 Unity MCP 连接到 `C:/Projects/MyUnityProject`。”Agent 先调用 `unity_load_tools`，再调用 `unity_configure_project`，传入工程绝对路径 `projectPath`；只有自动发现失败时才需要补充 `serverPath`。未连接引擎时也能加载配置工具。
+
+工具检查工程的 `Assets`、`ProjectSettings` 和已构建的 CoderGamester 服务器入口，再通过 DSH 官方配置服务保存并重载插件。**保存影响当前 profile 的所有会话；会清空旧的 host、port、authTokenPath 覆盖项，改用新工程设置。** 其他配置保留。路径校验失败不会保存；并发修改连接字段时会要求重试。保存成功仅表示配置已应用，仍需重新加载工具并做只读场景查询，确认引擎在线。
+
+工具不会安装引擎包、构建服务器或启动编辑器。也可以继续在插件配置中手工设置路径。
+
 ## 工具懒加载
 
-每个 Agent 初始只看到 `unity_load_tools`。需要编辑器能力时，调用一次即可把当前服务器提供的 `mcp__unity__*` 工具加载到该 Agent；其他 Agent 仍保持未加载。场景、GameObject、组件、材质、资源、控制台和测试等工具的参数与结果沿用上游，插件不维护另一套工具清单。
+每个 Agent 初始只看到 `unity_load_tools`。调用后先获得 `unity_configure_project`，并加载当前服务器提供的 `mcp__unity__*` 工具；未连接时只有配置工具。其他 Agent 仍保持未加载。场景、GameObject、组件、材质、资源、控制台和测试等工具的参数与结果沿用上游，插件不维护另一套工具清单。
 
 加载动作不会修改工程。**加载后的编辑器操作可能创建、删除资源，修改场景、执行菜单或安装包。请先提交或备份工程，并检查每次调用的范围。** 如需立即暴露全部工具，把 `lazyTools` 设为 `false`。实际工具数量随上游版本变化。
 
