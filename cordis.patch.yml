@@ -1,0 +1,4 @@
+- insert:
+    - id: dsh-unity-mcp
+      name: dsh-unity-mcp
+      config: {}
