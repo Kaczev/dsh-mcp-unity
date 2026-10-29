@@ -2,7 +2,8 @@
 
 - [README.md](README.md): engine prerequisites, DSH setup and tool loading.
 - [index.mjs](index.mjs): plugin entry and configuration schema.
-- [lib/project-lifecycle.mjs](lib/project-lifecycle.mjs): project-local request/response bridge, save acknowledgement and verified normal exit.
+- [docs/release-v0.0.5.md](docs/release-v0.0.5.md): editor readiness wait, installation guard and verification limits.
+- [lib/project-lifecycle.mjs](lib/project-lifecycle.mjs): project-local request/response bridge, fresh readiness handshake, save acknowledgement and verified normal exit.
 - [lib/install-codergamester.mjs](lib/install-codergamester.mjs): pinned package preparation and auto-start requests without MCP.
 - [engine/Editor/ProjectBridge.cs](engine/Editor/ProjectBridge.cs): Editor-side save safety checks and lifecycle actions.
 - [test/project-lifecycle.test.mjs](test/project-lifecycle.test.mjs): installation preservation and lifecycle failure/exit checks.

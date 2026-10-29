@@ -12,18 +12,23 @@ public static class ProjectBridge {
     [Serializable] class Reply { public string id; public bool success; public string message; public int pid; }
     static readonly string Root = Path.GetFullPath(Path.Combine(Application.dataPath, "../Library/DshUnityMcp"));
     static double next;
+    static double stableSince;
     static ProjectBridge() { EditorApplication.update += Update; }
     static void Update() {
-        if (EditorApplication.timeSinceStartup < next || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating) { stableSince = 0; return; }
+        if (stableSince == 0) stableSince = EditorApplication.timeSinceStartup;
+        if (EditorApplication.timeSinceStartup < next) return;
         next = EditorApplication.timeSinceStartup + .25;
         if (!Directory.Exists(Root)) return;
         foreach (var file in Directory.GetFiles(Root, "*.request.json")) {
             Request request = null;
             try {
                 request = JsonUtility.FromJson<Request>(File.ReadAllText(file));
+                if (request != null && request.action == "ready" && EditorApplication.timeSinceStartup - stableSince < 2) continue;
                 File.Delete(file);
                 if (request == null || !Guid.TryParseExact(request.id, "N", out _) || Path.GetFileName(file) != request.id + ".request.json") continue;
                 if (request.expires < DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) continue;
+                if (request.action == "ready") { Write(request.id, true, "Editor update loop ready; MCP connectivity not checked."); continue; }
                 bool close = request.action == "close";
                 if (request.action == "save" || close) {
                     if (EditorApplication.isPlayingOrWillChangePlaymode) throw new Exception("Stop Play mode before saving or closing.");

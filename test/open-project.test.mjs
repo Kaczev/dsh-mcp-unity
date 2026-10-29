@@ -15,13 +15,15 @@ test('open validates version, detects existing/locked project and launches exact
     await writeFile(path.join(root, 'ProjectSettings/ProjectVersion.txt'), 'm_EditorVersion: 2022.3.62t5\n');
     const editor = path.join(root, 'Tuanjie.exe'); await writeFile(editor, '');
     let launches = 0;
-    const deps = { platform: 'win32', processes: async () => [], versionOf: async () => '2022.3.62t5_hash', discover: async () => [editor], launch: async (exe, project) => { assert.equal(exe, editor); assert.equal(project, root); launches++; return 123; } };
+    const deps = { waitReady: async () => {}, platform: 'win32', processes: async () => [], versionOf: async () => '2022.3.62t5_hash', discover: async () => [editor], launch: async (exe, project) => { assert.equal(exe, editor); assert.equal(project, root); launches++; return 123; } };
     await assert.rejects(openProject({ projectPath: root }, { ...deps, platform: 'linux' }), /Windows/);
     await assert.rejects(openProject({ projectPath: 'relative' }, deps), /absolute/);
     await assert.rejects(openProject({ projectPath: root }, { ...deps, versionOf: async () => '2022.3.62f3' }), /found 0/);
-    const opened = await openProject({ projectPath: root }, deps); assert.equal(opened.status, 'launch_requested'); assert.equal(launches, 1);
+    const opened = await openProject({ projectPath: root }, deps); assert.equal(opened.status, 'editor_ready'); assert.equal(launches, 1);
     const existing = await openProject({ projectPath: root }, { ...deps, processes: async () => [{ CommandLine: `Tuanjie.exe -projectpath "${root}"`, ProcessId: 55, ExecutablePath: editor }] });
-    assert.equal(existing.status, 'already_open'); assert.equal(launches, 1);
+    assert.equal(existing.status, 'editor_ready'); assert.equal(existing.editorReady, true); assert.equal(launches, 1);
+    const loading = await openProject({ projectPath: root, timeoutMs: 1000 }, { ...deps, processes: async () => [{ CommandLine: `Tuanjie.exe -projectpath "${root}"`, ProcessId: 55, ExecutablePath: editor }], waitReady: async () => { throw Error('Still importing'); } });
+    assert.equal(loading.status, 'editor_loading'); assert.equal(loading.editorReady, false); assert.match(loading.message, /Still importing/); assert.equal(launches, 1);
     await assert.rejects(openProject({ projectPath: root }, deps), /last 60 seconds/);
     const locked = path.join(root, 'locked');
     for (const dir of ['Assets', 'ProjectSettings', 'Temp']) await mkdir(path.join(locked, dir), { recursive: true });

@@ -26,6 +26,19 @@ test('offline installer preserves dependencies, is repeatable and rejects replac
     await assert.rejects(installCoderGamester({ projectPath: root }, deps), /Refusing to replace/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+test('installer waits before manifest edits and leaves dependencies unchanged on readiness failure', async () => {
+  const root = await fixture();
+  try {
+    const file = path.join(root, 'Packages/manifest.json');
+    const before = await readFile(file, 'utf8');
+    const deps = { platform: 'win32', processes: async () => [{ ProcessId: 7, CommandLine: `Unity.exe -projectPath "${root}"` }], waitReady: async () => { assert.equal(await readFile(file, 'utf8'), before); throw Error('still loading'); } };
+    await assert.rejects(installCoderGamester({ projectPath: root, timeoutMs: 1000 }, deps), /dependencies were not changed/);
+    assert.equal(await readFile(file, 'utf8'), before);
+    let checked = false;
+    const result = await installCoderGamester({ projectPath: root }, { ...deps, waitReady: async () => { assert.equal(await readFile(file, 'utf8'), before); checked = true; }, request: async () => ({}) });
+    assert.ok(checked); assert.equal(result.enableStatus, 'start_requested');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 test('lifecycle response identity, failure, success and confirmed exit', async () => {
   const root = await fixture();
   let running = true;
@@ -48,6 +61,8 @@ test('lifecycle response identity, failure, success and confirmed exit', async (
   try {
     const failed = requestProject({ projectPath: root, timeoutMs: 2000 }, 'close', deps);
     await respond(false); await assert.rejects(failed, /Unnamed scene/); assert.ok(running);
+    const ready = requestProject({ projectPath: root, timeoutMs: 2000 }, 'ready', deps);
+    await respond(true); assert.equal((await ready).status, 'editor_ready');
     const save = requestProject({ projectPath: root, timeoutMs: 2000 }, 'save', deps);
     await respond(true); assert.equal((await save).status, 'saved');
     const close = requestProject({ projectPath: root, timeoutMs: 2000 }, 'close', deps);
