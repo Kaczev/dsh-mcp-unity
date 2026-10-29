@@ -1,6 +1,6 @@
 {
   "name": "dsh-unity-mcp",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Unity and Tuanjie editor tools for DSH, powered by CoderGamester/mcp-unity with per-agent lazy loading.",
   "type": "module",
   "license": "MIT",

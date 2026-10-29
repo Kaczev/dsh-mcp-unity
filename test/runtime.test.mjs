@@ -20,6 +20,35 @@ function runtime() {
   const get = (i, name) => ctx.tools.get(name, scopeOf(agents[i].ctx));
   return { ctx, scopes, agents, names, get };
 }
+test('late MCP registration stays hidden before any pre-step and refreshes loaded agents immediately', async () => {
+  const { ctx, scopes, names, get } = runtime();
+  const owner = ctx.plugin(context => installLazyTools(context, true, setupTools())); await owner;
+  const disposers = [];
+  try {
+    await get(0, 'unity_load_tools').execute();
+    const before = sceneTool(async () => 'before');
+    disposers.push(ctx.tools.register(before));
+    assert.deepEqual(names(1), ['unity_load_tools']);
+    assert.ok(names(0).includes('unity_scene'));
+    assert.equal(await get(0, 'unity_scene').execute({ action: 'info' }), 'before');
+    disposers.pop()();
+    assert.ok(!names(0).includes('unity_scene'));
+    disposers.push(ctx.tools.register(sceneTool(async () => 'after')));
+    assert.deepEqual(names(1), ['unity_load_tools']);
+    assert.equal(await get(0, 'unity_scene').execute({ action: 'info' }), 'after');
+    const scope = createScope(ctx, {}); scopes.push(scope);
+    const agent = { ctx: scope.ctx };
+    await ctx.serial('agent/created', { agent });
+    assert.deepEqual(ctx.tools.schemas(scopeOf(agent.ctx)).map(t => t.name), ['unity_load_tools']);
+    disposers.push(ctx.tools.register({ ...sceneTool(async () => 'menu'), name: 'mcp__unity__execute_menu_item' }));
+    assert.deepEqual(names(1), ['unity_load_tools']);
+    assert.ok(names(0).includes('mcp__unity__execute_menu_item'));
+    await scopes[0].dispose();
+    assert.ok(!names(0).includes('unity_load_tools'));
+    assert.ok(!names(0).includes('unity_scene'));
+  } finally { await owner.dispose(); disposers.forEach(dispose => dispose()); for (const scope of scopes) await scope.dispose(); }
+});
+
 const setupTools = () => [projectTool({}), installationTool(), configurationTool({})];
 const sceneTool = execute => ({ name: 'mcp__unity__get_scene_info', description: 'Read scene', parameters: { type: 'object', properties: {}, additionalProperties: false }, output: { schema: {}, render: () => [] }, execute });
 

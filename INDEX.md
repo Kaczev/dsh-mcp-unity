@@ -27,6 +27,7 @@
 - [lib/configure-project.mjs](lib/configure-project.mjs): validate project paths and persist connection through configEditor.
 - [test/configure-project.test.mjs](test/configure-project.test.mjs): configuration safety and concurrency checks.
 - [docs/release-v0.0.2.md](docs/release-v0.0.2.md): configuration tool release and live verification.
+- [docs/release-v0.0.8.md](docs/release-v0.0.8.md): asynchronous MCP discovery visibility fix and regression evidence.
 - [lib/lazy-tools.mjs](lib/lazy-tools.mjs): per-agent tool visibility and lifecycle.
 - [test/connection.test.mjs](test/connection.test.mjs), [test/lazy-tools.test.mjs](test/lazy-tools.test.mjs): offline verification.
 - [test/runtime.test.mjs](test/runtime.test.mjs): real Cordis ToolRuntime per-agent visibility and disposal.
