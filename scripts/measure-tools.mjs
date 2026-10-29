@@ -1,0 +1,10 @@
+import { execFileSync } from 'node:child_process';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { projectTool } from '../lib/project.mjs';
+import { installationTool } from '../lib/install-codergamester.mjs';
+import { configurationTool } from '../lib/configure-project.mjs';
+const get = file => execFileSync('git', ['show', 'v0.0.5:' + file], { encoding: 'utf8' });
+const load = (file, name) => new Function('return function ' + name + '()' + get(file).split('export function ' + name + '()')[1])()();
+const schema = tools => JSON.stringify(tools.map(({name, description, parameters}) => ({name, description, parameters})));
+const common = [installationTool(), configurationTool({})];
+console.log(JSON.stringify({unit:'UTF-8 schema bytes, not model tokens',oldLocal:Buffer.byteLength(schema([load('lib/open-project.mjs','openProjectTool'),...load('lib/project-lifecycle.mjs','lifecycleTools'),...common])),newLocal:Buffer.byteLength(schema([projectTool({}),...common]))}));

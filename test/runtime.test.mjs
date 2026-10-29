@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { Context, Service } from '@deepseek-ai/cordis';
 import { ToolRuntime } from '@deepseek-ai/dsh-tools';
 import { createScope, scopeOf } from '@deepseek-ai/dsh-scope';
+import { projectTool } from '../lib/project.mjs';
+import { installationTool } from '../lib/install-codergamester.mjs';
+import { configurationTool } from '../lib/configure-project.mjs';
 import { installLazyTools } from '../lib/lazy-tools.mjs';
 
 test('offline setup loads per agent using real ToolRuntime', async () => {
@@ -13,7 +16,7 @@ test('offline setup loads per agent using real ToolRuntime', async () => {
   const agents = scopes.map(({ ctx }) => ({ ctx }));
   class Agents extends Service { constructor(ctx) { super(ctx, 'agents'); } list() { return agents; } }
   new Agents(ctx);
-  const setup = ['unity_configure_project', 'unity_open_project', 'unity_save_project', 'unity_close_project', 'unity_install_codergamester'].map(name => ({ name, description: 'Local tool', parameters: { type: 'object' }, output: { schema: {}, render: () => [] }, execute: async () => ({}) }));
+  const setup = [projectTool({}), installationTool(), configurationTool({})];
   const owner = ctx.plugin(context => installLazyTools(context, true, setup)); await owner;
   try {
     const names = i => ctx.tools.schemas(scopeOf(agents[i].ctx)).map(t => t.name);

@@ -1,6 +1,11 @@
 # Repository navigation
 
 - [README.md](README.md): engine prerequisites, DSH setup and tool loading.
+- [lib/project.mjs](lib/project.mjs): read-only editor inventory, configured target and unified project lifecycle tool.
+- [test/project.test.mjs](test/project.test.mjs): inventory privacy/read-only checks and action routing.
+- [scripts/measure-tools.mjs](scripts/measure-tools.mjs): compare local tool schema UTF-8 bytes against v0.0.5 (not token counts).
+- [scripts/verify-project.mjs](scripts/verify-project.mjs): isolated editor inventory/open/status/save/close validation.
+- [docs/release-v0.0.6.md](docs/release-v0.0.6.md): consolidated tool migration and actual verification.
 - [index.mjs](index.mjs): plugin entry and configuration schema.
 - [docs/release-v0.0.5.md](docs/release-v0.0.5.md): editor readiness wait, installation guard and verification limits.
 - [lib/project-lifecycle.mjs](lib/project-lifecycle.mjs): project-local request/response bridge, fresh readiness handshake, save acknowledgement and verified normal exit.
