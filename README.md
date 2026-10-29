@@ -42,9 +42,19 @@
 
 工具不会安装引擎包、构建服务器或启动编辑器。也可以继续在插件配置中手工设置路径。
 
+## 打开工程（0.0.3 起，Windows）
+
+调用 `unity_load_tools` 后可使用 `unity_open_project`，传入 `projectPath`。不依赖引擎端 MCP 在线，也不要求工程已经安装 MCP 包。
+
+工具读取 `ProjectSettings/ProjectVersion.txt`，在标准 Unity / Tuanjie Hub 安装目录中寻找 ProductVersion 完全匹配的编辑器（允许版本后的 `_revision`）。自定义安装位置或多个匹配时，需传入 `editorPath`，指向对应的 `Unity.exe` / `Tuanjie.exe`。不自动安装编辑器，不允许用不同版本升级工程。当前不支持 macOS / Linux。
+
+已检测到该工程的编辑器进程时返回 `already_open`。存在工程锁但无法确认进程时拒绝启动，不删除锁；同一进程内的并发请求和 60 秒内重复启动也会被拦截。其他 DSH 进程或外部程序同时启动时，仍需依靠编辑器自己的工程锁。
+
+**打开工程可能触发资源导入和工程内编辑器脚本。请只打开可信工程。** 返回 `launch_requested` 仅表示系统接受启动请求，不表示编辑器已加载完成或 MCP 已连接。此工具不修改 DSH 连接配置；随后仍需用 `unity_configure_project` 配置连接，确认引擎服务启动后做只读查询。
+
 ## 工具懒加载
 
-每个 Agent 初始只看到 `unity_load_tools`。调用后先获得 `unity_configure_project`，并加载当前服务器提供的 `mcp__unity__*` 工具；未连接时只有配置工具。其他 Agent 仍保持未加载。场景、GameObject、组件、材质、资源、控制台和测试等工具的参数与结果沿用上游，插件不维护另一套工具清单。
+每个 Agent 初始只看到 `unity_load_tools`。调用后获得 `unity_configure_project` 和 `unity_open_project`，并加载当前服务器提供的 `mcp__unity__*` 工具；未连接时也有这两个本地工具。其他 Agent 仍保持未加载。场景、GameObject、组件、材质、资源、控制台和测试等工具的参数与结果沿用上游，插件不维护另一套工具清单。
 
 加载动作不会修改工程。**加载后的编辑器操作可能创建、删除资源，修改场景、执行菜单或安装包。请先提交或备份工程，并检查每次调用的范围。** 如需立即暴露全部工具，把 `lazyTools` 设为 `false`。实际工具数量随上游版本变化。
 

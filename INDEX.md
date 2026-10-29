@@ -2,6 +2,9 @@
 
 - [README.md](README.md): engine prerequisites, DSH setup and tool loading.
 - [index.mjs](index.mjs): plugin entry and configuration schema.
+- [lib/open-project.mjs](lib/open-project.mjs): Windows matching editor discovery, duplicate detection and launch.
+- [test/open-project.test.mjs](test/open-project.test.mjs): project launch safety and version checks.
+- [docs/release-v0.0.3.md](docs/release-v0.0.3.md): launch tool release and verification limits.
 - [lib/connection.mjs](lib/connection.mjs): server discovery and stdio connection mapping.
 - [lib/configure-project.mjs](lib/configure-project.mjs): validate project paths and persist connection through configEditor.
 - [test/configure-project.test.mjs](test/configure-project.test.mjs): configuration safety and concurrency checks.

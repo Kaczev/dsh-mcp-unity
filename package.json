@@ -1,6 +1,6 @@
 {
   "name": "dsh-unity-mcp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Unity and Tuanjie editor tools for DSH, powered by CoderGamester/mcp-unity with per-agent lazy loading.",
   "type": "module",
   "license": "MIT",
@@ -38,7 +38,7 @@
     }
   },
   "scripts": {
-    "check": "node --check index.mjs && node --check lib/connection.mjs && node --check lib/lazy-tools.mjs && node --check lib/configure-project.mjs",
+    "check": "node --check index.mjs && node --check lib/connection.mjs && node --check lib/lazy-tools.mjs && node --check lib/configure-project.mjs && node --check lib/open-project.mjs",
     "test": "node --test test/*.test.mjs",
     "build": "npm run check",
     "pack:check": "npm pack --dry-run --json"

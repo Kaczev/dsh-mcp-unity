@@ -2,6 +2,7 @@ import z from '@deepseek-ai/schemastery';
 import * as mcp from '@deepseek-ai/dsh-mcp-client';
 import { connectionConfig } from './lib/connection.mjs';
 import { installLazyTools } from './lib/lazy-tools.mjs';
+import { openProjectTool } from './lib/open-project.mjs';
 import { configurationTool } from './lib/configure-project.mjs';
 export const name = 'dsh-unity-mcp';
 export const inject = ['tools', 'agents', 'configEditor'];
@@ -16,10 +17,13 @@ export const Config = z.object({
 });
 export async function apply(ctx, config) {
   // Install the loader even before configuration, so discovery explains setup.
-  installLazyTools(ctx, config.lazyTools, [configurationTool(ctx)]);
+  installLazyTools(ctx, config.lazyTools, [configurationTool(ctx), openProjectTool()]);
   if (!config.projectPath && !config.serverPath) {
     ctx.logger.info('Unity MCP: configure projectPath or serverPath to connect CoderGamester/mcp-unity.');
     return;
   }
-  await mcp.apply(ctx, mcp.Config(await connectionConfig(config)));
+  let connection;
+  try { connection = await connectionConfig(config); }
+  catch (error) { ctx.logger.warn('Unity MCP connection needs configuration: ' + error.message); return; }
+  await mcp.apply(ctx, mcp.Config(connection));
 }
