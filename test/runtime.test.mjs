@@ -13,13 +13,13 @@ test('offline setup loads per agent using real ToolRuntime', async () => {
   const agents = scopes.map(({ ctx }) => ({ ctx }));
   class Agents extends Service { constructor(ctx) { super(ctx, 'agents'); } list() { return agents; } }
   new Agents(ctx);
-  const setup = { name: 'unity_configure_project', description: 'Configure', parameters: { type: 'object' }, output: { schema: {}, render: () => [] }, execute: async () => ({}) };
-  const owner = ctx.plugin(context => installLazyTools(context, true, [setup])); await owner;
+  const setup = ['unity_configure_project', 'unity_open_project', 'unity_save_project', 'unity_close_project', 'unity_install_codergamester'].map(name => ({ name, description: 'Local tool', parameters: { type: 'object' }, output: { schema: {}, render: () => [] }, execute: async () => ({}) }));
+  const owner = ctx.plugin(context => installLazyTools(context, true, setup)); await owner;
   try {
     const names = i => ctx.tools.schemas(scopeOf(agents[i].ctx)).map(t => t.name);
     assert.deepEqual(names(0), ['unity_load_tools']);
     const result = await ctx.tools.get('unity_load_tools', scopeOf(agents[0].ctx)).execute();
-    assert.deepEqual(result.tools, ['unity_configure_project']);
+    assert.deepEqual(result.tools, setup.map(tool => tool.name));
     assert.ok(names(0).includes('unity_configure_project'));
     assert.deepEqual(names(1), ['unity_load_tools']);
   } finally { await owner.dispose(); for (const scope of scopes) await scope.dispose(); }

@@ -2,6 +2,13 @@
 
 - [README.md](README.md): engine prerequisites, DSH setup and tool loading.
 - [index.mjs](index.mjs): plugin entry and configuration schema.
+- [lib/project-lifecycle.mjs](lib/project-lifecycle.mjs): project-local request/response bridge, save acknowledgement and verified normal exit.
+- [lib/install-codergamester.mjs](lib/install-codergamester.mjs): pinned package preparation and auto-start requests without MCP.
+- [engine/Editor/ProjectBridge.cs](engine/Editor/ProjectBridge.cs): Editor-side save safety checks and lifecycle actions.
+- [test/project-lifecycle.test.mjs](test/project-lifecycle.test.mjs): installation preservation and lifecycle failure/exit checks.
+- [scripts/verify-connection.mjs](scripts/verify-connection.mjs): read-only MCP scene probe against the isolated fixture, without changing DSH configuration.
+- [scripts/verify-editor.mjs](scripts/verify-editor.mjs): local isolated Tuanjie validation launcher (requires the recorded local editor path).
+- [docs/release-v0.0.4.md](docs/release-v0.0.4.md): lifecycle release verification and remaining limits.
 - [lib/open-project.mjs](lib/open-project.mjs): Windows matching editor discovery, duplicate detection and launch.
 - [test/open-project.test.mjs](test/open-project.test.mjs): project launch safety and version checks.
 - [docs/release-v0.0.3.md](docs/release-v0.0.3.md): launch tool release and verification limits.

@@ -4,7 +4,7 @@
 
 把 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 的 Unity / 团结引擎编辑器工具接入 DSH，默认按 Agent 懒加载。
 
-**必须先在 Unity 或 Tuanjie（团结引擎）项目中安装 CoderGamester 的 MCP Unity Server，并启动引擎端服务。只安装本 npm 插件无法控制编辑器。** 本项目是 DSH 适配插件；引擎端与实际编辑器工具由上游提供。上游项目、安装说明及许可证见 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity)。
+**控制编辑器前，必须在 Unity 或 Tuanjie（团结引擎）项目中安装 CoderGamester 的 MCP Unity Server，并启动引擎端服务。** 0.0.4 起可让 Agent 用 `unity_install_codergamester` 准备安装，也可手动安装。本项目是 DSH 适配插件；上游编辑器工具由 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 提供，保存与关闭使用本插件附带的独立 Editor 桥接。
 
 ## 安装与连接
 
@@ -14,7 +14,7 @@
    ```text
    https://github.com/CoderGamester/mcp-unity.git
    ```
-2. 打开 **Tools → MCP Unity → Server Window**，按照上游说明启动服务。找到该项目安装的 `Server~/build/index.js`。如果没有构建文件，在对应的 `Server~` 目录运行 `npm install` 和 `npm run build`。DSH 插件不会自动下载、安装或构建引擎包。
+2. 打开 **Tools → MCP Unity → Server Window**，按照上游说明启动服务。找到该项目安装的 `Server~/build/index.js`。如果没有构建文件，在对应的 `Server~` 目录运行 `npm install` 和 `npm run build`。需要自动准备引擎依赖时，使用下文的安装工具；它仍不会下载或构建 Node 服务器。
 3. 在 DSH 插件管理中安装 npm 包：
    ```text
    dsh-unity-mcp
@@ -52,9 +52,21 @@
 
 **打开工程可能触发资源导入和工程内编辑器脚本。请只打开可信工程。** 返回 `launch_requested` 仅表示系统接受启动请求，不表示编辑器已加载完成或 MCP 已连接。此工具不修改 DSH 连接配置；随后仍需用 `unity_configure_project` 配置连接，确认引擎服务启动后做只读查询。
 
+## 保存、关闭与安装（0.0.4 起，Windows）
+
+这些工具都不要求已有 MCP 连接。首次调用会在目标工程的 `Assets/Editor/DshUnityMcp/ProjectBridge.cs` 写入本插件的 Editor 桥接，可能触发编译；同路径已有不同内容时拒绝覆盖。请只在可信且已备份的工程中操作。
+
+- `unity_save_project`：保存所有已加载且有路径的场景及修改过的资源。Play Mode、Prefab Mode、未命名场景会阻止操作；未命名场景需先在编辑器中选择保存路径。工具不替用户命名或另存。
+- `unity_close_project`：先执行上述保存，成功后请求编辑器正常退出，并检查指定工程的进程已退出。保存失败不关闭；不强杀、不提供丢弃修改选项。超时不代表已经关闭，重试前检查编辑器。
+- `unity_install_codergamester`：向 `Packages/manifest.json` 加入固定到上游 commit `382a43a30f4dab4c7f02d770b4ec7d084813bbe4` 的依赖，设置 `AutoStartServer` 并通过桥接请求启动。修改前保留 `.dsh-backup`，保留其他依赖；已有不同的 CoderGamester 依赖时拒绝替换。它不打开或关闭编辑器，不更改 DSH 连接，也不下载或构建 Node 服务器。
+
+安装工具返回的 `pending_editor_start`、`start_requested` 只描述准备和启动请求；`ready` 始终为 `false`，不能当作已连接。随后打开或刷新编辑器，等待 Package Manager 解析、编译，构建缺失的 `Server~`，再用 `unity_configure_project` 配置连接并做只读查询。网络、Git、包解析或编译失败需在编辑器中处理；工具不会自动移除其他 MCP 包。
+
+独立团结测试工程已验证场景修改写入磁盘、保存后正常关闭。安装依赖与实际引擎服务连接分开验收；其他 Unity / Tuanjie 版本仍需自行验证。
+
 ## 工具懒加载
 
-每个 Agent 初始只看到 `unity_load_tools`。调用后获得 `unity_configure_project` 和 `unity_open_project`，并加载当前服务器提供的 `mcp__unity__*` 工具；未连接时也有这两个本地工具。其他 Agent 仍保持未加载。场景、GameObject、组件、材质、资源、控制台和测试等工具的参数与结果沿用上游，插件不维护另一套工具清单。
+每个 Agent 初始只看到 `unity_load_tools`。调用后获得 `unity_configure_project`、`unity_open_project`、`unity_save_project`、`unity_close_project`、`unity_install_codergamester`，并加载当前服务器提供的 `mcp__unity__*` 工具；未连接时也有这五个本地工具。其他 Agent 仍保持未加载。场景、GameObject、组件、材质、资源、控制台和测试等工具的参数与结果沿用上游，插件不维护另一套工具清单。
 
 加载动作不会修改工程。**加载后的编辑器操作可能创建、删除资源，修改场景、执行菜单或安装包。请先提交或备份工程，并检查每次调用的范围。** 如需立即暴露全部工具，把 `lazyTools` 设为 `false`。实际工具数量随上游版本变化。
 
