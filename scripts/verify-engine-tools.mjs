@@ -1,0 +1,53 @@
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { writeFile, mkdir } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import { connectionConfig, resolveServer } from '../lib/connection.mjs';
+import { manageProject } from '../lib/project.mjs';
+import { createEngineTools } from '../lib/engine-tools.mjs';
+const projectPath = fileURLToPath(new URL('../output/lifecycle-project/', import.meta.url));
+const readiness = await manageProject({ action: 'status', projectPath, timeoutMs: 180000 });
+if (!readiness.editorReady) throw Error('Isolated editor is not ready; open the existing fixture before running this probe.');
+const server = await resolveServer({ projectPath });
+const require = createRequire(server);
+const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
+const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
+const config = await connectionConfig({ projectPath, serverPath: server });
+const client = new Client({ name: 'dsh-adapter-validation', version: '0.0.7' });
+const transport = new StdioClientTransport({ command: process.execPath, args: [server], env: { ...process.env, ...config.env }, stderr: 'pipe' });
+const report = [];
+try {
+  await client.connect(transport);
+  const { tools } = await client.listTools();
+  const raw = tools.map(t => ({ name: 'mcp__unity__' + t.name, description: t.description, parameters: t.inputSchema, output: { schema: {}, render: (_, value) => value.content }, execute: async args => { const result = await client.callTool({ name: t.name, arguments: args }); if (result.isError) throw Error(JSON.stringify(result.content)); return result; } }));
+  const adapted = createEngineTools(raw);
+  const call = async (name, args) => { const result = await adapted.find(t => t.name === name).execute(args); report.push({ name, args, result }); return result; };
+  const parse = result => result.content.filter(c => c.type === 'text').map(c => { try { return JSON.parse(c.text); } catch { return c.text; } });
+  await call('unity_scene', { action: 'info' });
+  await call('unity_play', { action: 'status' });
+  const objectPath = 'DSH_Adapter_007_' + Date.now();
+  await call('mcp__unity__update_gameobject', { objectPath, gameObjectData: { name: objectPath } });
+  try {
+    await call('unity_transform', { action: 'set', objectPath, position: { x: 2, y: 3, z: 4 } });
+    const read = parse(await call('mcp__unity__get_gameobject', { idOrName: objectPath, includeComponentProperties: true }));
+    assert.match(JSON.stringify(read), /"x":2/);
+    assert.match(JSON.stringify(read), /"y":3/);
+    assert.match(JSON.stringify(read), /"z":4/);
+    await call('unity_transform', { action: 'translate', objectPath, position: { x: 1, y: 0, z: 0 }, relative: true });
+    assert.match(JSON.stringify(parse(await call('mcp__unity__get_gameobject', { idOrName: objectPath, includeComponentProperties: true }))), /"x":3/);
+    await assert.rejects(adapted.find(t => t.name === 'unity_transform').execute({ action: 'set', objectPath, instanceId: 123, position: { x: 0, y: 0, z: 0 } }), /exactly one/);
+    await assert.rejects(adapted.find(t => t.name === 'mcp__unity__reparent_gameobject').execute({ objectPath }), /explicitly/);
+    await assert.rejects(adapted.find(t => t.name === 'unity_scene').execute({ action: 'save', scenePath: 'Assets/ShouldNotExist.unity' }), /saveAs:true/);
+    await assert.rejects(adapted.find(t => t.name === 'unity_material').execute({ action: 'info', materialPath: 'Packages/Bad.mat' }), /Assets/);
+    report.push({ negativeCases: 4, upstreamCalls: 0 });
+    await assert.rejects(call('mcp__unity__get_gameobject', { idOrName: 'DSH_INTENTIONALLY_MISSING_007' }));
+    await call('unity_scene', { action: 'info' });
+  } finally { await call('mcp__unity__delete_gameobject', { objectPath }); }
+  const projection = ({ name, description, parameters }) => ({ name, description, parameters });
+  const rawBytes = Buffer.byteLength(JSON.stringify(raw.map(projection)));
+  const adapterBytes = Buffer.byteLength(JSON.stringify(adapted.map(projection)));
+  report.push({ rawCount: raw.length, adaptedCount: adapted.length, rawBytes, adapterBytes, measurement: 'UTF-8 schema bytes, not model token counts' });
+  await mkdir(new URL('../output/audit/', import.meta.url), { recursive: true });
+  await writeFile(new URL('../output/audit/adapter-validation.json', import.meta.url), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify({ passed: true, calls: report.length, rawCount: raw.length, adaptedCount: adapted.length, rawBytes, adapterBytes }));
+} finally { await client.close(); }

@@ -1,5 +1,10 @@
 # Repository navigation
 
+- [lib/engine-tools.mjs](lib/engine-tools.mjs): domain tool grouping, runtime argument validation and upstream result forwarding.
+- [test/engine-tools.test.mjs](test/engine-tools.test.mjs): action routing, guard failures and output projection.
+- [scripts/inspect-tools.mjs](scripts/inspect-tools.mjs): read the isolated upstream server inventory.
+- [scripts/verify-engine-tools.mjs](scripts/verify-engine-tools.mjs): isolated adapter write/readback and error recovery checks.
+- [docs/release-v0.0.7.md](docs/release-v0.0.7.md): engine tool migration, schema measurements and verification limits.
 - [README.md](README.md): engine prerequisites, DSH setup and tool loading.
 - [lib/project.mjs](lib/project.mjs): read-only editor inventory, configured target and unified project lifecycle tool.
 - [test/project.test.mjs](test/project.test.mjs): inventory privacy/read-only checks and action routing.
