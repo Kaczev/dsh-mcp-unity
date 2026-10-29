@@ -23,7 +23,7 @@ test('open validates version, detects existing/locked project and launches exact
     const existing = await openProject({ projectPath: root }, { ...deps, processes: async () => [{ CommandLine: `Tuanjie.exe -projectpath "${root}"`, ProcessId: 55, ExecutablePath: editor }] });
     assert.equal(existing.status, 'editor_ready'); assert.equal(existing.editorReady, true); assert.equal(launches, 1);
     const loading = await openProject({ projectPath: root, timeoutMs: 1000 }, { ...deps, processes: async () => [{ CommandLine: `Tuanjie.exe -projectpath "${root}"`, ProcessId: 55, ExecutablePath: editor }], waitReady: async () => { throw Error('Still importing'); } });
-    assert.equal(loading.status, 'editor_loading'); assert.equal(loading.editorReady, false); assert.match(loading.message, /Still importing/); assert.equal(launches, 1);
+    assert.equal(loading.status, 'readiness_unconfirmed'); assert.equal(loading.editorReady, null); assert.equal(loading.running, true); assert.match(loading.message, /Still importing/); assert.equal(launches, 1);
     await assert.rejects(openProject({ projectPath: root }, deps), /last 60 seconds/);
     const locked = path.join(root, 'locked');
     for (const dir of ['Assets', 'ProjectSettings', 'Temp']) await mkdir(path.join(locked, dir), { recursive: true });

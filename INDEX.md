@@ -5,6 +5,10 @@
 - [scripts/inspect-tools.mjs](scripts/inspect-tools.mjs): read the isolated upstream server inventory.
 - [scripts/verify-engine-tools.mjs](scripts/verify-engine-tools.mjs): isolated adapter write/readback and error recovery checks.
 - [docs/release-v0.0.7.md](docs/release-v0.0.7.md): engine tool migration, schema measurements and verification limits.
+- [docs/release-v0.0.9.md](docs/release-v0.0.9.md): Unicode project detection, readiness semantics and lazy window capture verification.
+- [lib/capture-window.mjs](lib/capture-window.mjs), [lib/capture-window.ps1](lib/capture-window.ps1): explicit-project Windows main-window capture and image attachments.
+- [test/capture-window.test.mjs](test/capture-window.test.mjs): Unicode output, process identity and image validation.
+- [scripts/verify-window.mjs](scripts/verify-window.mjs): read-only live capture probe; requires exactly one identifiable editor.
 - [README.md](README.md): engine prerequisites, DSH setup and tool loading.
 - [lib/project.mjs](lib/project.mjs): read-only editor inventory, configured target and unified project lifecycle tool.
 - [test/project.test.mjs](test/project.test.mjs): inventory privacy/read-only checks and action routing.

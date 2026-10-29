@@ -4,9 +4,10 @@ import { connectionConfig } from './lib/connection.mjs';
 import { installLazyTools } from './lib/lazy-tools.mjs';
 import { projectTool } from './lib/project.mjs';
 import { installationTool } from './lib/install-codergamester.mjs';
+import { screenshotTool } from './lib/capture-window.mjs';
 import { configurationTool } from './lib/configure-project.mjs';
 export const name = 'dsh-unity-mcp';
-export const inject = ['tools', 'agents', 'configEditor'];
+export const inject = ['tools', 'agents', 'configEditor', 'attachments'];
 export const Config = z.object({
   projectPath: z.string().default('').description('Unity / Tuanjie 项目绝对路径 / Absolute project directory'),
   serverPath: z.string().default('').description('CoderGamester Server~/build/index.js 绝对路径；留空从项目发现 / Built server path; blank discovers in project'),
@@ -18,7 +19,7 @@ export const Config = z.object({
 });
 export async function apply(ctx, config) {
   // Install the loader even before configuration, so discovery explains setup.
-  installLazyTools(ctx, config.lazyTools, [projectTool(ctx), installationTool(), configurationTool(ctx)]);
+  installLazyTools(ctx, config.lazyTools, [projectTool(ctx), screenshotTool(ctx), installationTool(), configurationTool(ctx)]);
   if (!config.projectPath && !config.serverPath) {
     ctx.logger.info('Unity MCP: configure projectPath or serverPath to connect CoderGamester/mcp-unity.');
     return;

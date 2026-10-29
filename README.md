@@ -32,7 +32,7 @@ Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程�
 
 安装 CoderGamester 和保存 DSH 连接分别由独立工具处理，避免把打开工程、修改包和切换所有会话的连接混为一次操作。工程处于关闭状态时，也可以先离线准备安装，再打开编辑器。包依赖固定在已核验的上游 commit，已有不同的 CoderGamester 依赖时不会擅自替换；其他包会保留。
 
-**打开工程需要时间。** 工具会等待编辑器完成当前导入、编译并回应新鲜握手：返回 `editor_ready` / `editorReady: true` 才代表这次编辑器就绪检查通过。`list` 中的 `running_not_verified` 只表示发现了进程。`status` 返回 `readiness_unconfirmed` 或 `open` 返回 `editor_loading` 时，应继续检查或等待，不要重复启动或假设工程已经加载完成。运行或启动中的工程，安装工具也会在修改依赖前执行就绪检查；等待失败不会改写依赖。关闭工程的离线安装只代表文件准备完成，不代表工程已打开。
+**打开工程需要时间。** 工具会等待编辑器完成当前导入、编译并回应新鲜握手：返回 `editor_ready` / `editorReady: true` 才代表这次编辑器就绪检查通过。`list` 中的 `running_not_verified` 只表示发现了进程。`status` 或 `open` 返回 `readiness_unconfirmed` 时，`running: true` 表示已发现该工程进程，`editorReady: null` 表示未能确认就绪，不能据此断定仍在加载。`process_unconfirmed` 表示部分进程的工程路径不可读，不能确认该工程是否运行。不要重复启动；可先截图查看编辑器。运行或启动中的工程，安装工具也会在修改依赖前执行就绪检查；等待失败不会改写依赖。关闭工程的离线安装只代表文件准备完成，不代表工程已打开。
 
 编辑器就绪仍不等于 MCP 连通。Package Manager 还需下载和编译引擎包，服务需要成功启动；Node 服务器缺少构建文件时，还需在其 `Server~` 目录执行 `npm install` 和 `npm run build`。安装工具不会代为下载或构建 Node 服务器，也不自动改变 DSH 连接。
 
@@ -91,7 +91,8 @@ Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程�
 
 ## 排障
 
-- **工程一直是 `editor_loading`**：检查编辑器中的包解析、编译错误、模态窗口或自动刷新；修复后继续等待。不要因为超时就再次启动编辑器。
+- **工程就绪检查一直未确认**：进程已发现时不会据此报为“仍在加载”。用 `unity_capture_window` 并指定 `projectPath` 查看编辑器面板，再检查包解析、编译错误、模态窗口或自动刷新；不要因为超时再次启动编辑器。
+- **查看编辑器窗口**：懒加载后可调用 `unity_capture_window({projectPath: "C:/Projects/MyGame"})`，不依赖 MCP 或 Editor 桥接。仅支持 Windows，返回指定工程主窗口的图片附件，不抓桌面、不切换焦点、不还原最小化窗口。最小化、窗口不可用会报错；GPU 视图可能黑屏或未刷新，主窗口截图也不保证包含独立弹窗。截图可能包含工程中的敏感内容。工具仅为截图 PowerShell 子进程指定 `-ExecutionPolicy Bypass`，不修改系统或用户策略。
 - **安装等待失败**：运行中的工程尚未回应就绪检查，依赖未修改。先让工程完成加载；若修改过桥接源码，需人工处理冲突。
 - **Built CoderGamester server not found**：确认引擎包已经安装且 Node 服务器已构建，或手工设置 `serverPath`。
 - **Multiple cached CoderGamester servers found**：明确选择 `serverPath`。

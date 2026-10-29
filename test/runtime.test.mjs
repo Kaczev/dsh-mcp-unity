@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Context, Service } from '@deepseek-ai/cordis';
 import { ToolRuntime } from '@deepseek-ai/dsh-tools';
 import { createScope, scopeOf } from '@deepseek-ai/dsh-scope';
+import { screenshotTool } from '../lib/capture-window.mjs';
 import { projectTool } from '../lib/project.mjs';
 import { installationTool } from '../lib/install-codergamester.mjs';
 import { configurationTool } from '../lib/configure-project.mjs';
@@ -49,7 +50,7 @@ test('late MCP registration stays hidden before any pre-step and refreshes loade
   } finally { await owner.dispose(); disposers.forEach(dispose => dispose()); for (const scope of scopes) await scope.dispose(); }
 });
 
-const setupTools = () => [projectTool({}), installationTool(), configurationTool({})];
+const setupTools = () => [projectTool({}), screenshotTool({}), installationTool(), configurationTool({})];
 const sceneTool = execute => ({ name: 'mcp__unity__get_scene_info', description: 'Read scene', parameters: { type: 'object', properties: {}, additionalProperties: false }, output: { schema: {}, render: () => [] }, execute });
 
 test('offline setup loads per agent using real ToolRuntime', async () => {

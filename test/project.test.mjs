@@ -20,7 +20,9 @@ test('inventory is read-only, sanitized, includes unknown processes and marks se
     await assert.rejects(manageProject({ action: 'status', projectPath: root }, {}, { ...deps, processes: async () => [{ ProcessId: 1, CommandLine: `Unity.exe -projectPath "${root}"` }, { ProcessId: 2, CommandLine: `Unity.exe -projectPath "${root}"` }] }), /Multiple editor/);
     const closed = await manageProject({ action: 'status', projectPath: root }, {}, { ...deps, processes: async () => [] }); assert.equal(closed.status, 'not_running');
     const ready = await manageProject({ action: 'status', projectPath: root }, {}, { ...deps, request: async (_, action) => assert.equal(action, 'ready') }); assert.equal(ready.editorReady, true);
-    const failed = await manageProject({ action: 'status', projectPath: root }, {}, { ...deps, request: async () => { throw Error('compile blocked'); } }); assert.equal(failed.status, 'readiness_unconfirmed');
+    const failed = await manageProject({ action: 'status', projectPath: root }, {}, { ...deps, request: async () => { throw Error('compile blocked'); } }); assert.equal(failed.status, 'readiness_unconfirmed'); assert.equal(failed.running, true); assert.equal(failed.editorReady, null);
+    const unknown = await manageProject({ action: 'status', projectPath: root }, {}, { ...deps, processes: async () => [{ ProcessId: 4, CommandLine: null }] });
+    assert.equal(unknown.status, 'process_unconfirmed'); assert.equal(unknown.running, null); assert.equal(unknown.editorReady, null);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 test('unified actions route explicitly and connection target remains read-only', async () => {
