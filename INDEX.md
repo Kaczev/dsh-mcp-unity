@@ -38,3 +38,5 @@
 - [docs/design/icon.html](docs/design/icon.html): canonical Krea icon preview.
 - [docs/release-v0.0.1.md](docs/release-v0.0.1.md): release notes, verification and dependency audit limits.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): upstream and artwork provenance.
+
+- [unity-safe-verification](skills/unity-safe-verification/SKILL.md)：安全操作、回读和 Play 验收。

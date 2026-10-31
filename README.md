@@ -110,3 +110,9 @@ npm run pack:check
 测试覆盖服务器发现、配置边界、就绪等待、安装保护、保存关闭和 Agent 隔离。上下文大小测试比较 UTF-8 schema 字节数，不把字节数当作模型 token 数。
 
 本适配插件采用 MIT 许可证。上游 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 也采用 MIT 许可证；本包不分发上游引擎或服务器源码。图标由 Krea 2 Turbo 生成，不使用 Unity 官方标志。许可与素材说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## 按需技能目录
+
+- [unity-safe-verification](skills/unity-safe-verification/SKILL.md)：安全操作、回读和 Play 验收。
+
+这些技能需单独复制或链接到 `$DSH_HOME/skills/<技能名>`（缺省 `~/.dsh/skills`）；安装 MCP 插件不会安装它们。目录联接保留单一源，移动仓库后需重建。安装后在新会话确认发现，并用 `skill` 加载。跨技能引用需同时安装对应技能。
