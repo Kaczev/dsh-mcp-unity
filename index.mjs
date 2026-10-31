@@ -6,8 +6,9 @@ import { projectTool } from './lib/project.mjs';
 import { installationTool } from './lib/install-codergamester.mjs';
 import { screenshotTool } from './lib/capture-window.mjs';
 import { configurationTool } from './lib/configure-project.mjs';
+import { installPackagedSkills } from './lib/packaged-skills.mjs';
 export const name = 'dsh-unity-mcp';
-export const inject = ['tools', 'agents', 'configEditor', 'attachments'];
+export const inject = ['tools', 'agents', 'configEditor', 'attachments', 'skills'];
 export const Config = z.object({
   projectPath: z.string().default('').description('Unity / Tuanjie 项目绝对路径 / Absolute project directory'),
   serverPath: z.string().default('').description('CoderGamester Server~/build/index.js 绝对路径；留空从项目发现 / Built server path; blank discovers in project'),
@@ -18,6 +19,7 @@ export const Config = z.object({
   toolCallTimeoutMs: z.number().min(1000).max(600000).step(1).default(120000).description('工具超时（毫秒） / Tool timeout (ms)')
 });
 export async function apply(ctx, config) {
+  installPackagedSkills(ctx, new URL('./skills/', import.meta.url));
   // Install the loader even before configuration, so discovery explains setup.
   installLazyTools(ctx, config.lazyTools, [projectTool(ctx), screenshotTool(ctx), installationTool(), configurationTool(ctx)]);
   if (!config.projectPath && !config.serverPath) {

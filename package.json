@@ -1,6 +1,6 @@
 {
   "name": "dsh-unity-mcp",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Unity and Tuanjie editor tools for DSH, powered by CoderGamester/mcp-unity with per-agent lazy loading.",
   "type": "module",
   "license": "MIT",
@@ -23,6 +23,7 @@
     "./locale/*.json": "./locale/*.json"
   },
   "files": [
+    "skills",
     "index.mjs",
     "lib",
     "engine",
@@ -39,7 +40,7 @@
     }
   },
   "scripts": {
-    "check": "node --check index.mjs && node --check lib/capture-window.mjs && node --check lib/project.mjs && node --check lib/connection.mjs && node --check lib/engine-tools.mjs && node --check lib/lazy-tools.mjs && node --check lib/configure-project.mjs && node --check lib/open-project.mjs && node --check lib/project-lifecycle.mjs && node --check lib/install-codergamester.mjs",
+    "check": "node --check index.mjs && node --check lib/capture-window.mjs && node --check lib/project.mjs && node --check lib/connection.mjs && node --check lib/engine-tools.mjs && node --check lib/lazy-tools.mjs && node --check lib/configure-project.mjs && node --check lib/open-project.mjs && node --check lib/project-lifecycle.mjs && node --check lib/install-codergamester.mjs && node --check lib/packaged-skills.mjs",
     "test": "node --test test/*.test.mjs",
     "build": "npm run check",
     "pack:check": "npm pack --dry-run --json"

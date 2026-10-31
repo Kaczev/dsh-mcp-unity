@@ -40,3 +40,6 @@
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): upstream and artwork provenance.
 
 - [unity-safe-verification](skills/unity-safe-verification/SKILL.md)：安全操作、回读和 Play 验收。
+
+- [lib/packaged-skills.mjs](lib/packaged-skills.mjs)：随包技能解析、注册与卸载清理；[回归测试](test/packaged-skills.test.mjs)。
+- [docs/release-v0.0.10.md](docs/release-v0.0.10.md)：随包技能归属、迁移与本次验证范围。
