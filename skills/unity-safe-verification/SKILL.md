@@ -1,32 +1,32 @@
 ---
 name: unity-safe-verification
-description: 操作 Unity 或团结工程、修改场景资产或交付可玩版本时使用；确认工程就绪、回读目标并在 Play 中验收。
+description: Use when operating Unity or Tuanjie projects, changing scenes or assets, or delivering a playable build; confirm readiness, read back targets and verify in Play mode.
 ---
 
-# Unity／团结安全操作与实机验收
+# Safe Unity/Tuanjie operations and live verification
 
-## 确认目标
+## Confirm the target
 
-加载当前工具目录，枚举工程后固定绝对路径。分别确认编辑器就绪、MCP 连接、场景和 Play／Prefab 状态。进程、目录、握手只证明各自一层；只读场景查询需与工程一致。超时不重复启动或切换全局连接。
+Load the current tool catalog, enumerate projects and pin the absolute project path. Confirm editor readiness, the MCP connection, the scene and Play/Prefab states separately. A process, directory or handshake proves only its own layer; the read-only scene query must match the project. After a timeout, do not launch again or switch the global connection blindly.
 
-## 修改前
+## Before making changes
 
-读取目标、受影响场景、Prefab、共享材质和引用，记录定位与原值，不按脚本类名猜对象名。明确世界／本地坐标、共享／实例资源、活动场景／另存目标。参数与枚举按当前 schema 核验。
+Read the target, affected scenes, Prefabs, shared materials and references. Record locators and original values; do not infer object names from script class names. Clarify world/local coordinates, shared/instance resources and the active scene versus the save-as target. Validate parameters and enums against the current schema.
 
-保存用户修改后再复制工程，磁盘副本不包含未保存状态。安装包、升级编辑器、切换连接、打开不可信项目均在授权范围内处理。
+Save the user's changes before copying the project; a disk copy excludes unsaved state. Keep package installation, editor upgrades, connection changes and opening untrusted projects within the authorized scope.
 
-## 写后回读
+## Read back after writing
 
-小范围写入后查询对象实际值、组件、引用并检查控制台。回执不保证最终值；部分修改可能已发生，批量回滚按实际契约判断。修改共享资源前核对其他引用。超时先查状态，特别是播放切换、删除与父级变更。
+After a small write, query actual object values, components and references, and check the console. An acknowledgment does not guarantee the final value. Partial changes may already have occurred; assess batch rollback against the actual contract. Check other references before changing shared resources. Query state first after a timeout, especially for playback toggles, deletion and reparenting.
 
-## 分层验收
+## Verify by layer
 
-1. 文件：diff、资产与 meta 配对及引用；哈希只证明字节。
-2. 导入编译：等待完成，读取相关堆栈，不清日志掩盖错误。
-3. 场景：加载明确场景，核对层级和画面；默认空场景不证明工程损坏。
-4. Play：按需求走主路径及失败分支，检查输入、状态、真实画面和运行错误。静态测试不代替游玩。
-5. 持久化：退出 Play，确认编辑态结果并保存具名场景及资源，核对磁盘；运行态修改可能被丢弃。
+1. Files: inspect diffs, asset/meta pairs and references. Hashes prove only byte equality.
+2. Import and compilation: wait for completion and read relevant stack traces. Do not clear logs to hide errors.
+3. Scene: load the explicit scene and check its hierarchy and appearance. A default empty scene does not prove that the project is corrupt.
+4. Play: exercise required main paths and failure branches. Check input, state, actual visuals and runtime errors. Static tests do not replace playing.
+5. Persistence: exit Play, confirm the edit-mode result, save named scenes and resources, and check disk state. Runtime changes may be discarded.
 
-测试使用隔离对象或夹具，只清理自己的对象。报告各层验证范围；不能进入 Play 就列出未验证功能。
+Use isolated objects or fixtures for tests and clean up only your own objects. Report the scope verified at each layer. If Play cannot be entered, list the unverified features.
 
-例：位置修改后读取 Transform，再在目标场景检查落脚点；编译通过不证明角色没有悬空。
+For example, after changing a position, read back the Transform and check the landing point in the target scene. Successful compilation does not prove that the character is grounded.

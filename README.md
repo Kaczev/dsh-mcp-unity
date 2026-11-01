@@ -17,7 +17,7 @@
 需要 Node.js 22+、DSH `>=0.2.1-rc.3 <0.3.0`。在 DSH 插件管理中安装：
 
 ```text
-dsh-unity-mcp@0.0.10
+dsh-unity-mcp@0.0.11
 ```
 
 本地工程管理目前只支持 Windows。上游声明 Unity 2022.3+；本插件已在独立团结工程中验证，但不能保证所有 Unity / Tuanjie 版本都兼容。
