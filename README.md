@@ -2,7 +2,7 @@
 
 <img src="assets/icon_00001_.png" width="128" alt="Unity MCP: white and blue cubes" />
 
-把 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 接入 DSH，让 Agent 操作 Unity / Tuanjie（团结引擎）工程。工具默认按 Agent 懒加载，平时只提供一个加载入口。
+把 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 接入 DSH，让 Agent 操作 Unity / Tuanjie（团结引擎）工程。当前 Agent 加载随包的 `unity` 技能后，可以查看或管理本地工程，再按任务加载安装、截图或引擎工具。
 
 ## 能做什么
 
@@ -17,7 +17,7 @@
 需要 Node.js 22+、DSH `>=0.2.1-rc.3 <0.3.0`。在 DSH 插件管理中安装：
 
 ```text
-dsh-unity-mcp@0.0.11
+dsh-unity-mcp@0.1.0
 ```
 
 本地工程管理目前只支持 Windows。上游声明 Unity 2022.3+；本插件已在独立团结工程中验证，但不能保证所有 Unity / Tuanjie 版本都兼容。
@@ -28,7 +28,7 @@ dsh-unity-mcp@0.0.11
 
 可以直接说：“打开 `C:/Projects/MyGame`，准备 CoderGamester，再连接这个工程。”
 
-Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程和 DSH 配置的连接目标，再对明确的工程路径执行 `status`、`open`、`save` 或 `close`。`list` 只读，不会写入桥接或启动工程；工程路径无法读取的编辑器进程也会列出，并标为未知。`status` 会检查就绪但不启动编辑器，`open` 则在需要时按版本匹配并启动。
+先加载 `unity` 技能，再调用 `unity_project({"action":"list"})` 即可查看打开的工程和当前 profile 配置的连接目标。`list` 只读，不写桥接、不启动工程；无法读取工程路径的进程标为未知。若只问“开了哪些工程”，到这里就可回答。要检查指定工程的编辑器是否就绪，再传绝对 `projectPath` 调用 `status`。它不启动编辑器，但可能写入 Editor 桥接并触发编译。`open` 还可能启动匹配版本的编辑器、导入资源并运行工程脚本。
 
 安装 CoderGamester 和保存 DSH 连接分别由独立工具处理，避免把打开工程、修改包和切换所有会话的连接混为一次操作。工程处于关闭状态时，也可以先离线准备安装，再打开编辑器。包依赖固定在已核验的上游 commit，已有不同的 CoderGamester 依赖时不会擅自替换；其他包会保留。
 
@@ -50,7 +50,9 @@ Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程�
 
 ## 使用与安全边界
 
-每个 Agent 初始只看到 `unity_load_tools`，调用后才获得本地工程管理和已发现的引擎工具；其他 Agent 不受影响。未连接 MCP 时仍可加载本地功能。服务器重连、工具更新和移除会同步到已加载的 Agent。需要立即暴露全部工具时，可将 `lazyTools` 设为 `false`，参数检查仍然有效。
+新 Agent 起初只看到 `unity` 技能的目录条目，不会收到本插件的工具或上游 MCP 指令。当前 Agent 成功调用 `skill({"name":"unity"})`，或用户在这个会话中执行 `/unity` 后，才会看到 `unity_project` 和 `unity_load_tools`。复制技能正文或从已加载的会话派生子 Agent 不会解锁工具。旧配置 `lazyTools: false` 不再提供提前加载入口。
+
+只加载任务需要的组，例如 `unity_load_tools({"groups":["capture"]})`。`setup` 提供安装和连接配置，`capture` 提供编辑器窗口截图，`editor` 提供当前连接上已发现的引擎工具。可多次追加组；空列表和未知组名会被拒绝。加载本身不修改工程或切换连接。没有 MCP 连接时，本地工具仍可使用；重新连接后，引擎工具仅同步到已请求 `editor` 的 Agent。
 
 引擎操作按领域组织：`unity_transform` 处理位置、旋转和缩放，`unity_scene` 管理场景，`unity_material` 管理共享材质与绑定，`unity_play` 查询或控制播放状态。其他操作保留上游名称。目标对象只能指定一个 `instanceId` 或 `objectPath`；对象详情默认只读自身且不展开组件属性，核对变换或组件值时需显式设置 `includeComponentProperties: true`。控制台默认返回 20 条且不带堆栈。
 
@@ -70,8 +72,7 @@ Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程�
 
 ```json
 {
-  "projectPath": "C:/Projects/MyGame",
-  "lazyTools": true
+  "projectPath": "C:/Projects/MyGame"
 }
 ```
 
@@ -79,7 +80,6 @@ Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程�
 | --- | --- | --- |
 | `projectPath` | 空 | 工程绝对路径；发现服务器并读取该工程设置 |
 | `serverPath` | 空 | 已构建的上游 `Server~/build/index.js` 绝对路径；优先于自动发现 |
-| `lazyTools` | `true` | 按 Agent 加载工具 |
 | `host` | 空 | 覆盖 `UNITY_HOST`；留空沿用上游设置 |
 | `port` | `0` | 覆盖 `UNITY_PORT`；0 沿用项目设置 |
 | `authTokenPath` | 空 | 可选认证文件绝对路径；不在配置中存 token |
@@ -92,7 +92,7 @@ Agent 加载工具后，先用 `unity_project` 的 `list` 查看打开的工程�
 ## 排障
 
 - **工程就绪检查一直未确认**：进程已发现时不会据此报为“仍在加载”。用 `unity_capture_window` 并指定 `projectPath` 查看编辑器面板，再检查包解析、编译错误、模态窗口或自动刷新；不要因为超时再次启动编辑器。
-- **查看编辑器窗口**：懒加载后可调用 `unity_capture_window({projectPath: "C:/Projects/MyGame"})`，不依赖 MCP 或 Editor 桥接。仅支持 Windows，返回指定工程主窗口的图片附件，不抓桌面、不切换焦点、不还原最小化窗口。最小化、窗口不可用会报错；GPU 视图可能黑屏或未刷新，主窗口截图也不保证包含独立弹窗。截图可能包含工程中的敏感内容。工具仅为截图 PowerShell 子进程指定 `-ExecutionPolicy Bypass`，不修改系统或用户策略。
+- **查看编辑器窗口**：加载 `capture` 组后可调用 `unity_capture_window({projectPath: "C:/Projects/MyGame"})`，不依赖 MCP 或 Editor 桥接。仅支持 Windows，返回指定工程主窗口的图片附件，不抓桌面、不切换焦点、不还原最小化窗口。最小化、窗口不可用会报错；GPU 视图可能黑屏或未刷新，主窗口截图也不保证包含独立弹窗。截图可能包含工程中的敏感内容。工具仅为截图 PowerShell 子进程指定 `-ExecutionPolicy Bypass`，不修改系统或用户策略。
 - **安装等待失败**：运行中的工程尚未回应就绪检查，依赖未修改。先让工程完成加载；若修改过桥接源码，需人工处理冲突。
 - **Built CoderGamester server not found**：确认引擎包已经安装且 Node 服务器已构建，或手工设置 `serverPath`。
 - **Multiple cached CoderGamester servers found**：明确选择 `serverPath`。
@@ -107,12 +107,12 @@ npm run build
 npm run pack:check
 ```
 
-测试覆盖服务器发现、配置边界、就绪等待、安装保护、保存关闭和 Agent 隔离。上下文大小测试比较 UTF-8 schema 字节数，不把字节数当作模型 token 数。
+测试覆盖服务器发现、配置边界、就绪等待、安装保护、保存关闭和 Agent 隔离。`scripts/measure-tools.mjs` 比较本地工具定义的 UTF-8 字节数；该值不是模型 token 数。
 
 本适配插件采用 MIT 许可证。上游 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 也采用 MIT 许可证；本包不分发上游引擎或服务器源码。图标由 Krea 2 Turbo 生成，不使用 Unity 官方标志。许可与素材说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 按需技能目录
 
-- [unity-safe-verification](skills/unity-safe-verification/SKILL.md)：安全操作、回读和 Play 验收。
+- [unity](skills/unity/SKILL.md)：Unity / Tuanjie MCP 的日常操作入口，涵盖工程发现、编辑器就绪、场景连接核对、保存关闭，以及修改后的回读和 Play 验收。
 
 这些技能随 npm 包分发，由插件启用时注册，禁用或卸载时撤销；正文仍按需加载，资源路径指向包内目录。无需另建用户级副本或目录联接。旧版已有的同名本地入口应核对来源后移到技能扫描范围之外备份，不删除技能正文。独立用户技能不会被插件改写或删除；同名条目遵循宿主优先级，禁用插件后用户条目仍可使用。跨插件技能引用需要启用对应插件。

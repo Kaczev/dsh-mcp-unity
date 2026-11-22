@@ -32,16 +32,17 @@
 - [test/configure-project.test.mjs](test/configure-project.test.mjs): configuration safety and concurrency checks.
 - [docs/release-v0.0.2.md](docs/release-v0.0.2.md): configuration tool release and live verification.
 - [docs/release-v0.0.8.md](docs/release-v0.0.8.md): asynchronous MCP discovery visibility fix and regression evidence.
-- [lib/lazy-tools.mjs](lib/lazy-tools.mjs): per-agent tool visibility and lifecycle.
+- [lib/lazy-tools.mjs](lib/lazy-tools.mjs): private MCP discovery, per-agent skill activation, named tool groups, reconnect and disposal.
 - [test/connection.test.mjs](test/connection.test.mjs), [test/lazy-tools.test.mjs](test/lazy-tools.test.mjs): offline verification.
-- [test/runtime.test.mjs](test/runtime.test.mjs): real Cordis ToolRuntime per-agent visibility and disposal.
+- [test/runtime.test.mjs](test/runtime.test.mjs): offline Cordis checks for cold agents, skill-only activation, group loading, fork isolation, reconnects and disposal.
 - [docs/design/icon.html](docs/design/icon.html): canonical Krea icon preview.
 - [docs/release-v0.0.1.md](docs/release-v0.0.1.md): release notes, verification and dependency audit limits.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): upstream and artwork provenance.
 
-- [unity-safe-verification](skills/unity-safe-verification/SKILL.md)：安全操作、回读和 Play 验收。
+- [unity](skills/unity/SKILL.md)：Unity / Tuanjie 日常操作入口：只读工程列表、编辑器与场景连接核对、保存关闭、写后回读及 Play 验收。
 
 - [lib/packaged-skills.mjs](lib/packaged-skills.mjs)：随包技能解析、注册与卸载清理；[回归测试](test/packaged-skills.test.mjs)。
 - [docs/release-v0.0.10.md](docs/release-v0.0.10.md)：随包技能归属、迁移与本次验证范围。
 
 - [0.0.11 release notes](docs/release-v0.0.11.md): English skill documentation and verification scope.
+- [0.1.0 发布说明](docs/release-v0.1.0.md)：`unity` 技能准入，以及 setup、capture、editor 分组加载。

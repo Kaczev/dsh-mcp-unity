@@ -2,109 +2,99 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Context, Service } from '@deepseek-ai/cordis';
 import { ToolRuntime } from '@deepseek-ai/dsh-tools';
-import { createScope, scopeOf } from '@deepseek-ai/dsh-scope';
-import { screenshotTool } from '../lib/capture-window.mjs';
-import { projectTool } from '../lib/project.mjs';
-import { installationTool } from '../lib/install-codergamester.mjs';
-import { configurationTool } from '../lib/configure-project.mjs';
+import { createScope } from '@deepseek-ai/dsh-scope';
 import { installLazyTools } from '../lib/lazy-tools.mjs';
+import { readPackagedSkills } from '../lib/packaged-skills.mjs';
+import { apply } from '../index.mjs';
 
+const directory = new URL('../skills/', import.meta.url);
+const base = ['unity_load_tools', 'unity_project'];
+const tool = (name, execute) => ({ name, execute, description: name, parameters: { type: 'object', properties: {} }, output: { schema: {}, render: (_, value) => [{ type: 'text', text: JSON.stringify(value) }] } });
+const valueOf = skill => ({ name: skill.name, content: skill.content, provider: 'runtime', resourceBase: skill.resourceBase });
+const render = skill => `<skill_content name="unity">\n<skill_resources>\nBase directory for this skill: ${skill.resourceBase.path.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}\nResolve relative paths mentioned by this skill against the base directory before using them. Load referenced resources only as needed.\n</skill_resources>\n\n<skill_instructions>\n${skill.content}\n</skill_instructions>\n</skill_content>`;
 function runtime() {
-  const ctx = new Context();
+  const ctx = new Context(), agents = [], scopes = [], catalog = new Map();
   class Prompt extends Service { constructor(ctx) { super(ctx, 'systemPrompt'); } tools() { return () => {}; } }
-  new Prompt(ctx); new ToolRuntime(ctx);
-  const scopes = [createScope(ctx, {}), createScope(ctx, {})];
-  const agents = scopes.map(({ ctx }) => ({ ctx }));
-  class Agents extends Service { constructor(ctx) { super(ctx, 'agents'); } list() { return agents; } }
-  new Agents(ctx);
-  const names = i => ctx.tools.schemas(scopeOf(agents[i].ctx)).map(t => t.name);
-  const get = (i, name) => ctx.tools.get(name, scopeOf(agents[i].ctx));
-  return { ctx, scopes, agents, names, get };
+  class Agents extends Service { constructor(ctx) { super(ctx, 'agents'); } list() { return agents; } get(id) { return agents.find(a => a.session.id === id); } }
+  class Skills extends Service { constructor(ctx) { super(ctx, 'skills'); } register(skill) { catalog.set(skill.name, skill); return () => catalog.delete(skill.name); } }
+  new Prompt(ctx); new ToolRuntime(ctx); new Agents(ctx); new Skills(ctx);
+  let seq = 0;
+  const add = async (parent, events = []) => {
+    const agent = { session: { id: 'session-' + agents.length, events } };
+    const scope = createScope(ctx, agent, parent ? { parent } : undefined);
+    scopes.push(scope); agents.push(agent); agent.ctx = scope.ctx;
+    await ctx.serial('agent/created', { agent }); return agent;
+  };
+  const names = agent => ctx.tools.schemas(agent).map(t => t.name).filter(n => /^(?:unity_|mcp__unity__)/.test(n)).sort();
+  const execute = (agent, name, args) => ctx.tools.execute({ callId: `call-${++seq}`, name, arguments: args, agent, signal: new AbortController().signal });
+  const dispose = async () => { for (const scope of [...scopes].reverse()) await scope.dispose(); };
+  return { ctx, catalog, add, names, execute, dispose };
 }
-test('late MCP registration stays hidden before any pre-step and refreshes loaded agents immediately', async () => {
-  const { ctx, scopes, names, get } = runtime();
-  const owner = ctx.plugin(context => installLazyTools(context, true, setupTools())); await owner;
-  const disposers = [];
-  try {
-    await get(0, 'unity_load_tools').execute();
-    const before = sceneTool(async () => 'before');
-    disposers.push(ctx.tools.register(before));
-    assert.deepEqual(names(1), ['unity_load_tools']);
-    assert.ok(names(0).includes('unity_scene'));
-    assert.equal(await get(0, 'unity_scene').execute({ action: 'info' }), 'before');
-    disposers.pop()();
-    assert.ok(!names(0).includes('unity_scene'));
-    disposers.push(ctx.tools.register(sceneTool(async () => 'after')));
-    assert.deepEqual(names(1), ['unity_load_tools']);
-    assert.equal(await get(0, 'unity_scene').execute({ action: 'info' }), 'after');
-    const scope = createScope(ctx, {}); scopes.push(scope);
-    const agent = { ctx: scope.ctx };
-    await ctx.serial('agent/created', { agent });
-    assert.deepEqual(ctx.tools.schemas(scopeOf(agent.ctx)).map(t => t.name), ['unity_load_tools']);
-    disposers.push(ctx.tools.register({ ...sceneTool(async () => 'menu'), name: 'mcp__unity__execute_menu_item' }));
-    assert.deepEqual(names(1), ['unity_load_tools']);
-    assert.ok(names(0).includes('mcp__unity__execute_menu_item'));
-    await scopes[0].dispose();
-    assert.ok(!names(0).includes('unity_load_tools'));
-    assert.ok(!names(0).includes('unity_scene'));
-  } finally { await owner.dispose(); disposers.forEach(dispose => dispose()); for (const scope of scopes) await scope.dispose(); }
-});
 
-const setupTools = () => [projectTool({}), screenshotTool({}), installationTool(), configurationTool({})];
-const sceneTool = execute => ({ name: 'mcp__unity__get_scene_info', description: 'Read scene', parameters: { type: 'object', properties: {}, additionalProperties: false }, output: { schema: {}, render: () => [] }, execute });
-
-test('offline setup loads per agent using real ToolRuntime', async () => {
-  const { ctx, scopes, names, get } = runtime(), setup = setupTools();
-  const owner = ctx.plugin(context => installLazyTools(context, true, setup)); await owner;
+test('offline plugin requires a same-agent packaged load; legacy eager config, copied text and fork history do not activate', async () => {
+  const h = runtime(), a = await h.add(), b = await h.add();
+  const owner = h.ctx.plugin(ctx => apply(ctx, { lazyTools: false })); await owner;
+  const skill = h.catalog.get('unity'); assert.ok(skill);
+  let lookup = () => { throw Error('unavailable'); };
+  const undo = h.ctx.tools.register(tool('skill', args => lookup(args.name)));
+  const load = agent => h.execute(agent, 'skill', { name: 'unity' });
+  const groups = (agent, names) => h.execute(agent, 'unity_load_tools', { groups: names });
+  const event = { type: 'user/message', data: { source: { kind: 'skill-invocation', name: 'unity', form: 'instructions' }, content: [{ type: 'text', text: render(skill) }] } };
   try {
-    assert.deepEqual(names(0), ['unity_load_tools']);
-    const result = await get(0, 'unity_load_tools').execute();
-    assert.deepEqual(result.tools, setup.map(tool => tool.name));
-    assert.ok(names(0).includes('unity_configure_project'));
-    assert.deepEqual(names(1), ['unity_load_tools']);
-  } finally { await owner.dispose(); for (const scope of scopes) await scope.dispose(); }
-});
-
-test('real Cordis ToolRuntime hides globals and exposes agent-local adapters', async () => {
-  const { ctx, scopes, names, get } = runtime(), calls = [];
-  const raw = sceneTool(async (args, exec) => { calls.push({ args, exec }); return { ok: true }; });
-  const disposeTool = ctx.tools.register(raw);
-  const owner = ctx.plugin(context => installLazyTools(context)); await owner;
-  try {
-    assert.deepEqual(names(0), ['unity_load_tools']); assert.deepEqual(names(1), ['unity_load_tools']);
-    assert.deepEqual((await get(0, 'unity_load_tools').execute()).tools, ['unity_scene']);
-    const exec = { marker: 'runtime-execution' };
-    assert.deepEqual(await get(0, 'unity_scene').execute({ action: 'info' }, exec), { ok: true });
-    assert.deepEqual(calls, [{ args: {}, exec }]); assert.equal(calls[0].exec, exec);
-    assert.ok(names(0).includes('unity_scene')); assert.ok(!names(0).includes(raw.name));
-    assert.ok(!names(1).includes('unity_scene')); assert.ok(!names(1).includes(raw.name));
-    await owner.dispose();
-    assert.ok(!names(0).includes('unity_load_tools')); assert.ok(!names(0).includes('unity_scene'));
-    assert.ok(names(0).includes(raw.name)); assert.ok(names(1).includes(raw.name));
-  } finally { await owner.dispose(); disposeTool(); for (const scope of scopes) await scope.dispose(); }
-});
-
-test('real ToolRuntime eager mode exposes setup once, masks raw scene and forwards adapter calls', async () => {
-  const { ctx, scopes, names, get } = runtime(), calls = [], setup = setupTools();
-  const raw = sceneTool(async (args, exec) => { calls.push({ args, exec }); return { activeScene: 'fixture' }; });
-  const disposeTool = ctx.tools.register(raw);
-  const owner = ctx.plugin(context => installLazyTools(context, false, setup)); await owner;
-  try {
-    for (let i = 0; i < 2; i++) {
-      const visible = names(i);
-      assert.equal(visible.length, new Set(visible).size);
-      for (const tool of setup) assert.equal(visible.filter(name => name === tool.name).length, 1);
-      assert.ok(!visible.includes('unity_load_tools')); assert.ok(!visible.includes(raw.name));
-      assert.ok(visible.includes('unity_scene'));
-      const exec = { agentIndex: i };
-      assert.deepEqual(await get(i, 'unity_scene').execute({ action: 'info' }, exec), { activeScene: 'fixture' });
-      assert.deepEqual(calls[i].args, {}); assert.equal(calls[i].exec, exec);
+    assert.deepEqual(h.names(a), []); assert.deepEqual(h.names(b), []);
+    assert.equal((await groups(a, ['setup'])).isError, true);
+    assert.equal((await load(a)).isError, true);
+    lookup = () => ({ ...valueOf(skill), provider: 'user-dsh' }); await load(a);
+    assert.deepEqual(h.names(a), []);
+    lookup = () => valueOf(skill); assert.equal((await load(a)).isError, false);
+    assert.deepEqual(h.names(a), base); assert.deepEqual(h.names(b), []);
+    const child = await h.add(a, [event]); assert.deepEqual(h.names(child), []);
+    for (const args of [{}, { groups: [] }, { groups: ['capture', 'all'] }]) {
+      assert.equal((await h.execute(a, 'unity_load_tools', args)).isError, true); assert.deepEqual(h.names(a), base);
     }
-    assert.equal(calls.length, 2);
-    await owner.dispose();
-    for (let i = 0; i < 2; i++) {
-      assert.ok(!names(i).includes('unity_scene')); assert.ok(names(i).includes(raw.name));
-      for (const tool of setup) assert.ok(!names(i).includes(tool.name));
-    }
-  } finally { await owner.dispose(); disposeTool(); for (const scope of scopes) await scope.dispose(); }
+    const project = h.ctx.tools.get('unity_project', a);
+    assert.equal((await groups(a, ['capture'])).isError, false);
+    assert.deepEqual(h.names(a), [...base, 'unity_capture_window'].sort());
+    assert.deepEqual(h.names(child), []); assert.equal((await groups(child, ['setup'])).isError, true);
+    assert.throws(() => project.execute({ action: 'list' }, { agent: child }), /unavailable/);
+    await groups(a, ['setup', 'capture']); assert.equal(h.ctx.tools.get('unity_project', a), project);
+    assert.deepEqual(h.names(a), [...base, 'unity_capture_window', 'unity_configure_project', 'unity_install_codergamester'].sort());
+    await h.ctx.serial('session/event', { id: child.session.id }, event);
+    await h.ctx.serial('session/event', child.session, { ...event, data: { ...event.data, source: { kind: 'user' } } });
+    assert.deepEqual(h.names(child), []);
+    await h.ctx.serial('session/event', child.session, event);
+    assert.deepEqual(h.names(child), base); assert.deepEqual(h.names(b), []);
+    assert.equal((await groups(child, ['setup'])).isError, false);
+    assert.ok(!h.names(child).includes('unity_capture_window'));
+    await owner.dispose(); assert.equal(h.catalog.size, 0);
+    for (const agent of [a, b, child]) assert.deepEqual(h.names(agent), []);
+  } finally { await owner.dispose(); undo(); await h.dispose(); }
+});
+
+test('private discovery publishes only to editor subscribers, replaces executors and withdraws stale registrations', async () => {
+  const h = runtime(), a = await h.add(), b = await h.add(), [skill] = readPackagedSkills(directory);
+  let bridge;
+  const owner = h.ctx.plugin(ctx => { bridge = installLazyTools(ctx, { skill, project: tool('unity_project', () => 'project'), setup: [], capture: tool('unity_capture_window', () => 'capture') }); }); await owner;
+  const undoSkill = h.ctx.tools.register(tool('skill', () => valueOf(skill)));
+  const unrelated = h.ctx.tools.register(tool('mcp__other__list', () => 'other'));
+  const raw = 'mcp__unity__get_scene_info';
+  let unregister = bridge.register(tool(raw, () => 'before'));
+  try {
+    await Promise.resolve(); assert.deepEqual(h.names(a), []); assert.deepEqual(h.names(b), []);
+    for (const agent of [a, b]) await h.execute(agent, 'skill', { name: 'unity' });
+    await h.execute(a, 'unity_load_tools', { groups: ['editor'] });
+    assert.deepEqual(h.names(a), [...base, 'unity_scene']); assert.deepEqual(h.names(b), base);
+    assert.equal(h.ctx.tools.get(raw), undefined);
+    assert.equal((await h.execute(a, 'unity_scene', { action: 'info' })).value, 'before');
+    const prior = h.ctx.tools.get('unity_scene', a);
+    unregister(); unregister = bridge.register(tool(raw, () => 'after'));
+    assert.throws(() => prior.execute({ action: 'info' }, { agent: a }), /unavailable/);
+    await Promise.resolve(); assert.notEqual(h.ctx.tools.get('unity_scene', a), prior);
+    assert.equal((await h.execute(a, 'unity_scene', { action: 'info' })).value, 'after');
+    const joined = await h.add(a); assert.deepEqual(h.names(joined), []);
+    unregister(); await Promise.resolve(); assert.deepEqual(h.names(a), base);
+    assert.equal((await h.execute(joined, 'mcp__other__list', {})).value, 'other');
+    await owner.dispose(); assert.deepEqual(h.names(a), []); assert.deepEqual(h.names(b), []);
+    assert.equal((await h.execute(a, 'mcp__other__list', {})).value, 'other');
+  } finally { unregister(); await owner.dispose(); unrelated(); undoSkill(); await h.dispose(); }
 });

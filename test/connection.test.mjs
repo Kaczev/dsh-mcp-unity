@@ -6,7 +6,7 @@ import path from 'node:path';
 import { resolveServer, connectionConfig } from '../lib/connection.mjs';
 import { Config } from '../index.mjs';
 
-test('configuration defaults keep tools lazy', () => { assert.equal(Config({}).lazyTools, true); assert.equal(Config({}).port, 0); });
+test('configuration has no eager-loading option', () => { assert.equal(Config({}).lazyTools, undefined); assert.equal(Config({}).port, 0); });
 test('missing configuration gives actionable error', async () => { await assert.rejects(resolveServer({}), /Configure projectPath/); });
 test('relative paths are rejected', async () => { await assert.rejects(resolveServer({ serverPath: 'relative.js' }), /absolute/); await assert.rejects(connectionConfig({ projectPath: 'relative' }), /absolute/); });
 test('project discovery, ambiguity, explicit override and environment', async () => {
