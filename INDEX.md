@@ -46,3 +46,4 @@
 
 - [0.0.11 release notes](docs/release-v0.0.11.md): English skill documentation and verification scope.
 - [0.1.0 发布说明](docs/release-v0.1.0.md)：`unity` 技能准入，以及 setup、capture、editor 分组加载。
+- [0.1.1 发布说明](docs/release-v0.1.1.md)：Unity 技能补充目标核对、写后回读和未保存工作保护。
